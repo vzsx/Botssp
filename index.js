@@ -171,4 +171,7 @@ client.on('ready', async () => {
     }
 });
 
-client.login(process.env.TOKEN || 'COLE_SEU_TOKEN_AQUI');
+const token = process.env.TOKEN;
+console.log('Token encontrado:', token ? token.substring(0, 10) + '...' : 'NENHUM');
+console.log('TOKEN env var:', JSON.stringify(process.env.TOKEN));
+client.login(token);
