@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, REST, Routes } = require('discord.js');
 
 const client = new Client({
     intents: [
@@ -9,11 +9,39 @@ const client = new Client({
     partials: [Partials.Channel]
 });
 
-client.once('ready', () => {
-    console.log(`Bot logado como ${client.user.tag}`);
+const commands = [
+    {
+        name: 'solicitar',
+        description: 'Enviar mensagem para solicitar funcional',
+    },
+    {
+        name: 'limpar',
+        description: 'Limpar mensagens do canal',
+        options: [{
+            name: 'quantidade',
+            type: 10,
+            description: 'Quantidade de mensagens',
+            required: false
+        }]
+    }
+];
+
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
+client.once('ready', async (c) => {
+    console.log(`Bot logado como ${c.user.tag}`);
+    try {
+        console.log('Registrando slash commands...');
+        await rest.put(
+            Routes.applicationCommands(c.user.id),
+            { body: commands }
+        );
+        console.log('Slash commands registrados!');
+    } catch (error) {
+        console.error(error);
+    }
 });
 
-// Comando /solicitar
 client.on('interactionCreate', async interaction => {
     if (interaction.isChatInputCommand()) {
         if (interaction.commandName === 'solicitar') {
@@ -48,7 +76,6 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // Botão "Solicitar Funcional" → abre modal
     if (interaction.isButton() && interaction.customId === 'solicitar_funcional') {
         const modal = new ModalBuilder()
             .setCustomId('modal_funcional')
@@ -102,7 +129,6 @@ client.on('interactionCreate', async interaction => {
         await interaction.showModal(modal);
     }
 
-    // Modal enviada → monta embed de registro
     if (interaction.isModalSubmit() && interaction.customId === 'modal_funcional') {
         const personagem = interaction.fields.getTextInputValue('personagem');
         const idade = interaction.fields.getTextInputValue('idade');
@@ -137,7 +163,6 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     }
 
-    // Botões Aprovar/Recusar
     if (interaction.isButton()) {
         if (interaction.customId === 'aprovar_registro') {
             await interaction.reply({ content: '✅ Registro aprovado!', ephemeral: true });
@@ -148,30 +173,4 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// Registrar slash commands ao ligar
-client.on('ready', async () => {
-    try {
-        await client.application.commands.create({
-            name: 'solicitar',
-            description: 'Enviar mensagem para solicitar funcional',
-        });
-        await client.application.commands.create({
-            name: 'limpar',
-            description: 'Limpar mensagens do canal',
-            options: [{
-                name: 'quantidade',
-                type: 10,
-                description: 'Quantidade de mensagens',
-                required: false
-            }]
-        });
-        console.log('Slash commands registrados!');
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-const token = process.env.TOKEN;
-console.log('Token encontrado:', token ? token.substring(0, 10) + '...' : 'NENHUM');
-console.log('TOKEN env var:', JSON.stringify(process.env.TOKEN));
-client.login(token);
+client.login(process.env.TOKEN);
